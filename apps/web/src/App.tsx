@@ -154,7 +154,7 @@ export default function App() {
 
       <div className="panel">
         <Stage width={WIDTH} height={HEIGHT} options={{ backgroundAlpha: 0 }}>
-          <Board vis={vis} unitsById={unitsById} />
+          <Board vis={vis} />
         </Stage>
       </div>
     </div>
