@@ -2,3 +2,5 @@ node_modules
 dist
 .turbo
 .DS_Store
+release
+web-dist

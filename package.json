@@ -5,7 +5,10 @@
   "scripts": {
     "dev": "pnpm --filter ./apps/web dev",
     "dev:all": "turbo run dev --parallel",
+    "dev:desktop": "pnpm --filter ./apps/desktop dev",
     "build": "turbo run build",
+    "build:desktop": "pnpm --filter ./apps/web build:electron && pnpm --filter ./apps/desktop build",
+    "pack:desktop": "pnpm run build:desktop && pnpm --filter ./apps/desktop electron:pack",
     "test": "turbo run test"
   },
   "devDependencies": {
