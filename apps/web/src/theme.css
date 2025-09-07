@@ -742,22 +742,29 @@ input[type="range"]:disabled::-moz-range-thumb {
 }
 
 .battle-layout {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 2rem;
+  display: flex;
+  justify-content: center;
   width: 100%;
   margin-bottom: 1rem;
 }
 
 .battle-info {
   width: 100%;
+  max-width: 800px;
+  display: flex;
+  justify-content: center;
 }
 
 .effects-legend {
   background: var(--panel);
-  border-radius: 8px;
-  padding: 1rem;
-  border: 1px solid #252a33;
+  border-radius: 10px;
+  padding: 0;
+  border: 2px solid #252a33;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.effects-legend .drag-handle:active {
+  cursor: grabbing !important;
 }
 
 .effects-legend h4 {

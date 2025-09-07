@@ -39,14 +39,25 @@ export default function BattleScreen({
   const [battleStarted, setBattleStarted] = useState(false);
   const [speed, setSpeed] = useState(1);
 
-  // Draggable controls state
-  const [controlsPosition, setControlsPosition] = useState({ x: 20, y: 20 });
+  // Draggable controls state - positioned middle-right
+  const [controlsPosition, setControlsPosition] = useState({
+    x: window.innerWidth - 320,
+    y: 200,
+  });
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
+  // Draggable effects guide state - positioned below controls
+  const [effectsPosition, setEffectsPosition] = useState({
+    x: window.innerWidth - 320,
+    y: 500,
+  });
+  const [isEffectsDragging, setIsEffectsDragging] = useState(false);
+  const [effectsDragOffset, setEffectsDragOffset] = useState({ x: 0, y: 0 });
+
   const round = playerWins + opponentWins + 1;
 
-  // Drag handlers
+  // Drag handlers for battle controls
   const handleMouseDown = (e: React.MouseEvent) => {
     const rect = (e.target as HTMLElement)
       .closest(".battle-controls")
@@ -67,15 +78,36 @@ export default function BattleScreen({
         y: e.clientY - dragOffset.y,
       });
     }
+    if (isEffectsDragging) {
+      setEffectsPosition({
+        x: e.clientX - effectsDragOffset.x,
+        y: e.clientY - effectsDragOffset.y,
+      });
+    }
   };
 
   const handleMouseUp = () => {
     setIsDragging(false);
+    setIsEffectsDragging(false);
+  };
+
+  // Drag handlers for effects guide
+  const handleEffectsMouseDown = (e: React.MouseEvent) => {
+    const rect = (e.target as HTMLElement)
+      .closest(".effects-legend")
+      ?.getBoundingClientRect();
+    if (rect) {
+      setIsEffectsDragging(true);
+      setEffectsDragOffset({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      });
+    }
   };
 
   // Add/remove global mouse event listeners
   React.useEffect(() => {
-    if (isDragging) {
+    if (isDragging || isEffectsDragging) {
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
       return () => {
@@ -83,7 +115,7 @@ export default function BattleScreen({
         document.removeEventListener("mouseup", handleMouseUp);
       };
     }
-  }, [isDragging, dragOffset]);
+  }, [isDragging, isEffectsDragging, dragOffset, effectsDragOffset]);
 
   // Convert PlayerUnit to battle format
   const playerUnitToInstance = (
@@ -200,7 +232,7 @@ export default function BattleScreen({
           left: `${controlsPosition.x}px`,
           top: `${controlsPosition.y}px`,
           zIndex: 1000,
-          cursor: isDragging ? "grabbing" : "grab",
+          width: "250px",
         }}
       >
         <div
@@ -210,7 +242,7 @@ export default function BattleScreen({
             padding: "4px 8px",
             backgroundColor: "rgba(0, 0, 0, 0.2)",
             borderRadius: "4px 4px 0 0",
-            cursor: "grab",
+            cursor: isDragging ? "grabbing" : "grab",
             userSelect: "none",
             fontSize: "12px",
             color: "#888",
@@ -319,32 +351,58 @@ export default function BattleScreen({
             </div>
           </div>
 
-          <div className="effects-legend">
-            <h4>Visual Effects Guide</h4>
-            <div className="legend-items">
-              <div className="legend-item">
-                <div className="legend-indicator buff-indicator"></div>
-                <span>🟢 Green Stats = Buffed</span>
-              </div>
-              <div className="legend-item">
-                <div className="legend-indicator shield-indicator"></div>
-                <span>🛡️ Gold Border = Shield</span>
-              </div>
-              <div className="legend-item">
-                <div className="legend-indicator poison-dot"></div>
-                <span>🟣 Purple Dot = Poison</span>
-              </div>
-              <div className="legend-item">
-                <div className="legend-indicator chain-dot"></div>
-                <span>🔵 Blue Dot = Chain</span>
-              </div>
-              <div className="legend-item">
-                <div className="legend-indicator lifesteal-dot"></div>
-                <span>🔴 Red Dot = Lifesteal</span>
-              </div>
-              <div className="legend-item">
-                <div className="legend-indicator generic-dot"></div>
-                <span>🟡 Yellow Dot = Other Effects</span>
+          <div
+            className="effects-legend draggable"
+            style={{
+              position: "fixed",
+              left: `${effectsPosition.x}px`,
+              top: `${effectsPosition.y}px`,
+              zIndex: 1000,
+              width: "250px",
+            }}
+          >
+            <div
+              className="drag-handle"
+              onMouseDown={handleEffectsMouseDown}
+              style={{
+                padding: "4px 8px",
+                backgroundColor: "rgba(0, 0, 0, 0.2)",
+                borderRadius: "4px 4px 0 0",
+                cursor: isEffectsDragging ? "grabbing" : "grab",
+                userSelect: "none",
+                fontSize: "12px",
+                color: "#888",
+              }}
+            >
+              ⋮⋮ Drag to move
+            </div>
+            <div style={{ padding: "1rem" }}>
+              <h4>Visual Effects Guide</h4>
+              <div className="legend-items">
+                <div className="legend-item">
+                  <div className="legend-indicator buff-indicator"></div>
+                  <span>🟢 Green Stats = Buffed</span>
+                </div>
+                <div className="legend-item">
+                  <div className="legend-indicator shield-indicator"></div>
+                  <span>🛡️ Gold Border = Shield</span>
+                </div>
+                <div className="legend-item">
+                  <div className="legend-indicator poison-dot"></div>
+                  <span>🟣 Purple Dot = Poison</span>
+                </div>
+                <div className="legend-item">
+                  <div className="legend-indicator chain-dot"></div>
+                  <span>🔵 Blue Dot = Chain</span>
+                </div>
+                <div className="legend-item">
+                  <div className="legend-indicator lifesteal-dot"></div>
+                  <span>🔴 Red Dot = Lifesteal</span>
+                </div>
+                <div className="legend-item">
+                  <div className="legend-indicator generic-dot"></div>
+                  <span>🟡 Yellow Dot = Other Effects</span>
+                </div>
               </div>
             </div>
           </div>
