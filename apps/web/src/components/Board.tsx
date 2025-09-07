@@ -10,39 +10,39 @@ const TEAM_ROWS = 2; // 2 rows per team
 const GAP_ROWS = 1; // Gap between teams
 const TOTAL_ROWS = TEAM_ROWS * 2 + GAP_ROWS; // 5 rows total
 
-// Text styles - Simple and clean, no effects
+// Text styles - Default PIXI settings
 const unitNameStyle = new PIXI.TextStyle({
-  fill: "#000000",
+  fill: 0x000000,
   fontSize: 11,
   fontWeight: "600",
   fontFamily: "Arial, sans-serif",
 });
 const unitStatStyle = new PIXI.TextStyle({
-  fill: "#000000",
+  fill: 0x000000,
   fontSize: 10,
   fontWeight: "600",
   fontFamily: "Arial, sans-serif",
 });
 const buffedStatStyle = new PIXI.TextStyle({
-  fill: "#0d7f3c",
+  fill: 0x22c55e,
   fontSize: 10,
   fontWeight: "700",
   fontFamily: "Arial, sans-serif",
 });
 const shieldTextStyle = new PIXI.TextStyle({
-  fill: "#b8860b",
+  fill: 0xffd700,
   fontSize: 8,
   fontWeight: "600",
   fontFamily: "Arial, sans-serif",
 });
 const teamAStyle = new PIXI.TextStyle({
-  fill: "#ffffff",
+  fill: 0x4da3ff,
   fontSize: 14,
   fontWeight: "700",
   fontFamily: "Arial, sans-serif",
 });
 const teamBStyle = new PIXI.TextStyle({
-  fill: "#ffffff",
+  fill: 0xff7aa2,
   fontSize: 14,
   fontWeight: "700",
   fontFamily: "Arial, sans-serif",
