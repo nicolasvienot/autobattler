@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Stage } from "@pixi/react";
 import Board from "./Board";
 import {
@@ -39,7 +39,51 @@ export default function BattleScreen({
   const [battleStarted, setBattleStarted] = useState(false);
   const [speed, setSpeed] = useState(1);
 
+  // Draggable controls state
+  const [controlsPosition, setControlsPosition] = useState({ x: 20, y: 20 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
   const round = playerWins + opponentWins + 1;
+
+  // Drag handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const rect = (e.target as HTMLElement)
+      .closest(".battle-controls")
+      ?.getBoundingClientRect();
+    if (rect) {
+      setIsDragging(true);
+      setDragOffset({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      });
+    }
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (isDragging) {
+      setControlsPosition({
+        x: e.clientX - dragOffset.x,
+        y: e.clientY - dragOffset.y,
+      });
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // Add/remove global mouse event listeners
+  React.useEffect(() => {
+    if (isDragging) {
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+      return () => {
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+      };
+    }
+  }, [isDragging, dragOffset]);
 
   // Convert PlayerUnit to battle format
   const playerUnitToInstance = (
@@ -148,68 +192,94 @@ export default function BattleScreen({
 
   return (
     <div className="screen battle-screen">
-      {/* Battle Controls Panel - Top Right */}
-      <div className="battle-controls">
-        <h4>Battle Controls</h4>
-        <div className="control-row">
-          <button
-            className={playing ? "secondary" : "primary"}
-            onClick={togglePlayback}
-            disabled={!events}
-          >
-            {playing ? "⏸️ Pause" : "▶️ Play"}
-          </button>
-          <button
-            className="secondary"
-            onClick={resetPlayback}
-            disabled={!events}
-          >
-            🔄 Reset
-          </button>
-          <button
-            className="secondary"
-            onClick={stepForward}
-            disabled={!events || idx >= events.length}
-            title="Step forward"
-          >
-            ⏭️ Next
-          </button>
+      {/* Battle Controls Panel - Draggable */}
+      <div
+        className="battle-controls draggable"
+        style={{
+          position: "fixed",
+          left: `${controlsPosition.x}px`,
+          top: `${controlsPosition.y}px`,
+          zIndex: 1000,
+          cursor: isDragging ? "grabbing" : "grab",
+        }}
+      >
+        <div
+          className="drag-handle"
+          onMouseDown={handleMouseDown}
+          style={{
+            padding: "4px 8px",
+            backgroundColor: "rgba(0, 0, 0, 0.2)",
+            borderRadius: "4px 4px 0 0",
+            cursor: "grab",
+            userSelect: "none",
+            fontSize: "12px",
+            color: "#888",
+          }}
+        >
+          ⋮⋮ Drag to move
         </div>
-        <div className="control-row">
-          <label>Speed:</label>
-          <input
-            type="range"
-            min={0.5}
-            max={4}
-            step={0.5}
-            value={speed}
-            onChange={(e) => setSpeed(parseFloat(e.target.value))}
-          />
-          <span>{speed}x</span>
-        </div>
-        <div className="control-info">
-          <div>
-            Event: {idx}/{events?.length || 0}
+        <div style={{ padding: "1rem" }}>
+          <h4>Battle controls</h4>
+          <div className="control-row">
+            <button
+              className={playing ? "secondary" : "primary"}
+              onClick={togglePlayback}
+              disabled={!events}
+            >
+              {playing ? "⏸️ Pause" : "▶️ Play"}
+            </button>
+            <button
+              className="secondary"
+              onClick={resetPlayback}
+              disabled={!events}
+            >
+              🔄 Reset
+            </button>
+            <button
+              className="secondary"
+              onClick={stepForward}
+              disabled={!events || idx >= events.length}
+              title="Step forward"
+            >
+              ⏭️ Next
+            </button>
           </div>
-          <div>
-            Status:{" "}
-            {!events
-              ? "Loading..."
-              : idx >= events.length
-              ? "Complete"
-              : playing
-              ? "Playing..."
-              : "Paused"}
+          <div className="control-row">
+            <label>Speed:</label>
+            <input
+              type="range"
+              min={0.5}
+              max={4}
+              step={0.5}
+              value={speed}
+              onChange={(e) => setSpeed(parseFloat(e.target.value))}
+            />
+            <span>{speed}x</span>
           </div>
-          {events && idx < events.length && (
-            <div className="current-event">Next: {events[idx]?.t}</div>
-          )}
-          {events && idx < events.length && (
-            <div className="event-details">
-              {JSON.stringify(events[idx], null, 2).slice(0, 100)}
-              {JSON.stringify(events[idx], null, 2).length > 100 && "..."}
+          <div className="control-info">
+            <div>
+              Event: {idx}/{events?.length || 0}
             </div>
-          )}
+            <div>
+              Status:{" "}
+              {!events
+                ? "Loading..."
+                : idx >= events.length
+                ? "Complete"
+                : playing
+                ? "Playing..."
+                : "Paused"}
+            </div>
+            {events && idx < events.length && (
+              <div className="current-event">Next: {events[idx]?.t}</div>
+            )}
+            {events && idx < events.length && (
+              <div className="event-details">
+                {JSON.stringify(events[idx], null, 2).slice(0, 100)}
+                {JSON.stringify(events[idx], null, 2).length > 100 && "..."}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
