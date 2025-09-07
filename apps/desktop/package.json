@@ -1,7 +1,7 @@
 {
   "name": "@nico/autobattler-desktop",
   "version": "0.0.1",
-  "descriptirelon": "Autobattler Desktop App",
+  "description": "Autobattler Desktop App",
   "author": "Nicolas Vienot",
   "main": "dist/main.js",
   "private": true,
