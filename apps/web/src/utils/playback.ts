@@ -14,12 +14,81 @@ export type VisualUnit = {
   baseHp: number;
   baseAtk: number;
   alive: boolean;
+  shield?: number;
+  statuses?: { [key: string]: number };
 };
 
-export type VisualState = { units: Map<string, VisualUnit> };
+export type VisualState = {
+  units: Map<string, VisualUnit>;
+  onStartEffectsApplied?: boolean;
+  lastEventWasSpawn?: boolean;
+};
 
 export function emptyVisualState(): VisualState {
-  return { units: new Map() };
+  return {
+    units: new Map(),
+    onStartEffectsApplied: false,
+    lastEventWasSpawn: false,
+  };
+}
+
+function applyMultiTargetOnStartEffects(
+  state: VisualState,
+  unitsById: Record<string, UnitDef>
+): void {
+  if (state.onStartEffectsApplied) return;
+
+  // Get all units with multi-target onStart abilities
+  const unitsWithOnStartAbilities = Array.from(state.units.values())
+    .filter((unit) => {
+      const unitId = uidToUnitId(unit.uid);
+      if (!unitId || !unitsById[unitId]) return false;
+      const unitDef = unitsById[unitId];
+      return (
+        unitDef.ability &&
+        unitDef.ability.trigger === "onStart" &&
+        unitDef.ability.effects.some((e) => e.target !== "self")
+      );
+    })
+    .sort((a, b) => {
+      // Apply in order: Team A first, then by position
+      if (a.team !== b.team) return a.team === "A" ? -1 : 1;
+      return a.pos.row - b.pos.row || a.pos.col - b.pos.col;
+    });
+
+  // Apply multi-target onStart effects
+  for (const unit of unitsWithOnStartAbilities) {
+    const unitId = uidToUnitId(unit.uid);
+    if (unitId && unitsById[unitId]) {
+      const unitDef = unitsById[unitId];
+
+      if (unitDef.ability && unitDef.ability.trigger === "onStart") {
+        for (const effect of unitDef.ability.effects) {
+          if (effect.kind === "buff" && effect.target !== "self") {
+            const targets = getTargetUnits(effect.target, unit, state.units);
+
+            for (const target of targets) {
+              if (effect.atk) target.atk += effect.atk;
+              if (effect.hp) {
+                target.hp += effect.hp;
+                target.baseHp += effect.hp;
+              }
+            }
+          } else if (effect.kind === "shield" && effect.target !== "self") {
+            const targets = getTargetUnits(effect.target, unit, state.units);
+
+            for (const target of targets) {
+              target.shield = (target.shield || 0) + effect.amount;
+              if (!target.statuses) target.statuses = {};
+              target.statuses["shield"] = target.shield;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  state.onStartEffectsApplied = true;
 }
 
 function uidToUnitId(uid: string): string | null {
@@ -28,18 +97,87 @@ function uidToUnitId(uid: string): string | null {
   return parts.slice(1, parts.length - 2).join("-");
 }
 
+function getTargetUnits(
+  target: string,
+  caster: VisualUnit,
+  allUnits: Map<string, VisualUnit>
+): VisualUnit[] {
+  const units = Array.from(allUnits.values()).filter((u) => u.alive);
+  const allies = units.filter((u) => u.team === caster.team);
+  const enemies = units.filter((u) => u.team !== caster.team);
+
+  switch (target) {
+    case "self":
+      return [caster];
+    case "allyFront":
+      // Get front-most ally (lowest row, then lowest col)
+      return allies
+        .filter((u) => u.uid !== caster.uid)
+        .sort((a, b) => a.pos.row - b.pos.row || a.pos.col - b.pos.col)
+        .slice(0, 1);
+    case "allyRandom":
+      // Get random ally (for simplicity, just get first available ally)
+      const availableAllies = allies.filter((u) => u.uid !== caster.uid);
+      return availableAllies.length > 0 ? [availableAllies[0]] : [];
+    case "allyLowestHP":
+      // Get ally with lowest HP
+      const lowestHPAlly = allies
+        .filter((u) => u.uid !== caster.uid)
+        .sort((a, b) => a.hp - b.hp)[0];
+      return lowestHPAlly ? [lowestHPAlly] : [];
+    case "enemyFront":
+      // Get front-most enemy
+      return enemies
+        .sort((a, b) => a.pos.row - b.pos.row || a.pos.col - b.pos.col)
+        .slice(0, 1);
+    case "enemyRandom":
+      // Get random enemy (for simplicity, just get first available enemy)
+      return enemies.length > 0 ? [enemies[0]] : [];
+    case "enemyBack":
+      // Get back-most enemy
+      return enemies
+        .sort((a, b) => b.pos.row - a.pos.row || b.pos.col - a.pos.col)
+        .slice(0, 1);
+    case "allAllies":
+      return allies;
+    case "allEnemies":
+      return enemies;
+    default:
+      return [];
+  }
+}
+
 export function applyLogEvent(
   state: VisualState,
   e: BattleLogEvent,
   unitsById: Record<string, UnitDef>
 ): VisualState {
-  const next: VisualState = { units: new Map(state.units) };
+  const next: VisualState = {
+    units: new Map(state.units),
+    onStartEffectsApplied: state.onStartEffectsApplied,
+    lastEventWasSpawn: state.lastEventWasSpawn,
+  };
+
+  // Apply multi-target onStart effects when we transition from spawn events to other events
+  // This ensures all units are spawned before applying team-wide buffs
+  if (
+    state.lastEventWasSpawn &&
+    e.t !== "spawn" &&
+    !next.onStartEffectsApplied
+  ) {
+    applyMultiTargetOnStartEffects(next, unitsById);
+  }
+
+  // Update spawn tracking
+  next.lastEventWasSpawn = e.t === "spawn";
+
   switch (e.t) {
     case "spawn": {
       const unitId = uidToUnitId(e.unit);
       if (!unitId) return next;
       const def = unitsById[unitId];
       if (!def) return next;
+
       next.units.set(e.unit, {
         uid: e.unit,
         team: e.team,
@@ -51,12 +189,87 @@ export function applyLogEvent(
         baseAtk: def.base.atk,
         alive: true,
       });
+
+      // Apply self-targeting onStart buffs immediately when unit spawns
+      if (def.ability && def.ability.trigger === "onStart") {
+        const spawnedUnit = next.units.get(e.unit)!;
+
+        for (const effect of def.ability.effects) {
+          if (effect.kind === "buff" && effect.target === "self") {
+            if (effect.atk) {
+              spawnedUnit.atk += effect.atk;
+            }
+            if (effect.hp) {
+              spawnedUnit.hp += effect.hp;
+              spawnedUnit.baseHp += effect.hp;
+            }
+          } else if (effect.kind === "shield" && effect.target === "self") {
+            spawnedUnit.shield = (spawnedUnit.shield || 0) + effect.amount;
+            if (!spawnedUnit.statuses) spawnedUnit.statuses = {};
+            spawnedUnit.statuses["shield"] = spawnedUnit.shield;
+          }
+        }
+      }
+
       break;
     }
     case "damage": {
       const u = next.units.get(e.target);
       if (u) {
-        u.hp = Math.max(0, u.hp - e.amount);
+        // Simulate shield consumption before applying HP damage
+        let damageAmount = e.amount;
+        if (u.shield && u.shield > 0) {
+          const shieldAbsorbed = Math.min(u.shield, damageAmount);
+          u.shield -= shieldAbsorbed;
+          damageAmount -= shieldAbsorbed;
+
+          // Update shield status
+          if (!u.statuses) u.statuses = {};
+          if (u.shield <= 0) {
+            u.shield = 0;
+            delete u.statuses["shield"];
+          } else {
+            u.statuses["shield"] = u.shield;
+          }
+        }
+
+        // Apply remaining damage to HP
+        if (damageAmount > 0) {
+          u.hp = Math.max(0, u.hp - damageAmount);
+        }
+
+        // Handle unit death - clear shield and statuses when HP reaches 0
+        if (u.hp <= 0) {
+          u.alive = false;
+          u.shield = 0;
+          if (u.statuses) {
+            delete u.statuses["shield"];
+            // Clear other statuses on death if needed
+          }
+        }
+
+        // Handle onHurt abilities after damage is applied
+        if (u.alive) {
+          const unitId = uidToUnitId(u.uid);
+          if (unitId && unitsById[unitId]) {
+            const unitDef = unitsById[unitId];
+            if (unitDef.ability && unitDef.ability.trigger === "onHurt") {
+              // Apply onHurt effects (like Berserker's attack buff when hurt)
+              for (const effect of unitDef.ability.effects) {
+                if (effect.kind === "buff") {
+                  const targets = getTargetUnits(effect.target, u, next.units);
+                  for (const buffTarget of targets) {
+                    if (effect.atk) buffTarget.atk += effect.atk;
+                    if (effect.hp) {
+                      buffTarget.hp += effect.hp;
+                      buffTarget.baseHp += effect.hp;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
       break;
     }
@@ -103,9 +316,77 @@ export function applyLogEvent(
       });
       break;
     }
-    case "start":
-    case "status":
-    case "attack":
+    case "status": {
+      const u = next.units.get(e.target);
+      if (u) {
+        // Initialize statuses if not present
+        if (!u.statuses) u.statuses = {};
+
+        // Handle different status effects
+        switch (e.status) {
+          case "attackBonus":
+            // Add attack bonus to current attack and track status
+            u.statuses[e.status] = (u.statuses[e.status] || 0) + e.amount;
+            u.atk = u.baseAtk + u.statuses[e.status];
+            break;
+          case "shield":
+            // Add shield amount and track it visually
+            u.shield = (u.shield || 0) + e.amount;
+            u.statuses[e.status] = u.shield;
+            break;
+          case "poison":
+          case "chain":
+          case "lifestealPct":
+          case "thorns":
+          case "poisonOnHit":
+          case "onAttackHeal":
+          case "revivePct":
+            // Track other status effects for potential visual indicators
+            u.statuses[e.status] = e.amount;
+            break;
+          default:
+            // Track unknown status effects
+            u.statuses[e.status] = e.amount;
+            break;
+        }
+      }
+      break;
+    }
+    case "start": {
+      // Note: onStart abilities are now handled during spawn events
+      // This ensures proper timing and unit availability
+      break;
+    }
+    case "attack": {
+      // Handle onAttack abilities
+      const attacker = next.units.get(e.attacker);
+      if (attacker) {
+        const unitId = uidToUnitId(attacker.uid);
+        if (unitId && unitsById[unitId]) {
+          const unitDef = unitsById[unitId];
+          if (unitDef.ability && unitDef.ability.trigger === "onAttack") {
+            // Apply onAttack effects (like Berserker's self-buff on hurt)
+            for (const effect of unitDef.ability.effects) {
+              if (effect.kind === "buff") {
+                const targets = getTargetUnits(
+                  effect.target,
+                  attacker,
+                  next.units
+                );
+                for (const target of targets) {
+                  if (effect.atk) target.atk += effect.atk;
+                  if (effect.hp) {
+                    target.hp += effect.hp;
+                    target.baseHp += effect.hp;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      break;
+    }
     case "end":
       break;
   }

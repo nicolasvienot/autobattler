@@ -1,5 +1,5 @@
 class AudioManager {
-  private audio: HTMLAudioElement | null = null;
+  public audio: HTMLAudioElement | null = null;
   private isPlaying = false;
   private volume = 0.5;
   private isMuted = false;
@@ -104,10 +104,17 @@ class AudioManager {
 // Create a singleton instance
 export const audioManager = new AudioManager();
 
-// Helper function to start music on first user interaction
+// Helper function to prepare audio for user-controlled playback
 export const enableAudioOnUserInteraction = () => {
-  const handleUserInteraction = async () => {
-    await audioManager.tryPlay();
+  // Just prepare audio context, don't auto-play
+  // This ensures audio can be played when user explicitly requests it
+  const handleUserInteraction = () => {
+    // Create an audio context to unlock audio on iOS/mobile browsers
+    // but don't actually play anything
+    if (audioManager.audio) {
+      // Just ensure audio is ready, don't play
+      audioManager.audio.load();
+    }
     // Remove listeners after first interaction
     document.removeEventListener("click", handleUserInteraction);
     document.removeEventListener("keydown", handleUserInteraction);

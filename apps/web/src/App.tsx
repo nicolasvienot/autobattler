@@ -1,30 +1,30 @@
 import { useEffect, useState } from "react";
-import { Stage } from "@pixi/react";
-import Board from "./components/Board";
+import StartScreen from "./components/StartScreen";
+import ShopScreen from "./components/ShopScreen";
+import BattleScreen from "./components/BattleScreen";
+import ResultScreen from "./components/ResultScreen";
 import Menu from "./components/Menu";
-import {
-  teamPresets,
-  unitsById,
-  makeBattle,
-  simulate,
-} from "@nico/autobattler-battle-core";
-import type { BattleLogEvent } from "@nico/autobattler-battle-core";
-import { applyLogEvent, VisualState, emptyVisualState } from "./utils/playback";
+import { generateShopUnits, generateOpponentTeam } from "./utils/gameLogic";
 import { audioManager, enableAudioOnUserInteraction } from "./utils/audio";
-
-const WIDTH = 8 * 96 + 32; // 8 columns * tile size + padding
-const HEIGHT = 5 * 96 + 32 + 20; // 5 rows (2 + 1 gap + 2) * tile size + padding + space for team labels
+import type { GameState, PlayerUnit, MONEY_CONSTANTS } from "./types/game";
+import { MONEY_CONSTANTS as MONEY } from "./types/game";
+import type { UnitDef } from "@nico/autobattler-battle-core";
 
 export default function App() {
-  const [selA, setSelA] = useState(0);
-  const [selB, setSelB] = useState(1);
-  const [seed, setSeed] = useState("demo-seed");
-  const [events, setEvents] = useState<BattleLogEvent[] | null>(null);
-  const [vis, setVis] = useState<VisualState>(emptyVisualState());
-  const [idx, setIdx] = useState(0);
-  const [speed, setSpeed] = useState(1);
-  const [playing, setPlaying] = useState(false);
-  const [winner, setWinner] = useState<string | null>(null);
+  const [gameState, setGameState] = useState<GameState>({
+    phase: "start",
+    playerTeam: [],
+    playerWins: 0,
+    opponentWins: 0,
+    currentShopUnits: [],
+    lastBattleWinner: null,
+    gameWinner: null,
+    money: MONEY.STARTING_MONEY,
+  });
+
+  const [currentOpponentTeam, setCurrentOpponentTeam] = useState<PlayerUnit[]>(
+    []
+  );
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const [isMusicMuted, setIsMusicMuted] = useState(false);
   const [musicVolume, setMusicVolume] = useState(0.5);
@@ -32,21 +32,15 @@ export default function App() {
 
   // Initialize audio on component mount
   useEffect(() => {
-    // Enable audio on user interaction to comply with browser autoplay policies
     enableAudioOnUserInteraction();
-
-    // Try to start music immediately (will only work if user has already interacted)
-    audioManager.tryPlay().then(() => {
-      setIsMusicPlaying(audioManager.getIsPlaying());
-    });
-
-    // Set initial volume
+    // Don't auto-start music - let user control it via menu
+    audioManager.stop(); // Ensure music is stopped
     audioManager.setVolume(musicVolume);
     setIsMusicMuted(audioManager.getIsMuted());
+    setIsMusicPlaying(false); // Start with music stopped
 
     return () => {
-      // Cleanup: pause music when component unmounts
-      audioManager.pause();
+      audioManager.stop(); // Use stop instead of pause for complete shutdown
     };
   }, []);
 
@@ -64,139 +58,178 @@ export default function App() {
     };
   }, []);
 
-  function run() {
-    setWinner(null);
-    const toInst = (preset: (typeof teamPresets)[number], team: "A" | "B") =>
-      preset.members.map((m) => ({
-        uid: "",
-        team,
-        defId: m.defId,
-        level: m.level,
-        pos: { row: m.row, col: m.col },
-        itemIds: m.itemIds ?? [],
-      })) as any;
+  // Game state handlers
+  const startGame = () => {
+    const shopUnits = generateShopUnits();
+    setGameState({
+      phase: "shop",
+      playerTeam: [],
+      playerWins: 0,
+      opponentWins: 0,
+      currentShopUnits: shopUnits,
+      lastBattleWinner: null,
+      gameWinner: null,
+      money: MONEY.STARTING_MONEY,
+    });
+  };
 
-    const A = toInst(teamPresets[selA], "A");
-    const B = toInst(teamPresets[selB], "B");
-    const state = makeBattle(seed, A, B);
-    const result = simulate(state);
-    setEvents(result.log);
-    setVis(emptyVisualState());
-    setIdx(0);
-    setPlaying(true);
-  }
+  const selectUnit = (unit: UnitDef) => {
+    // Don't allow purchase if not enough money
+    if (gameState.money < MONEY.UNIT_COST) return;
 
-  useEffect(() => {
-    if (!playing || !events) return;
-    if (idx >= events.length) {
-      setPlaying(false);
-      return;
+    const newPlayerUnit: PlayerUnit = {
+      id: `player_${gameState.playerTeam.length}_${Date.now()}`,
+      def: unit,
+      level: 1,
+    };
+
+    setGameState((prev) => ({
+      ...prev,
+      playerTeam: [...prev.playerTeam, newPlayerUnit],
+      money: prev.money - MONEY.UNIT_COST,
+      // Remove the purchased unit from the shop
+      currentShopUnits: prev.currentShopUnits.filter(
+        (shopUnit: UnitDef) => shopUnit.id !== unit.id
+      ),
+    }));
+  };
+
+  const sellUnit = (unitId: string) => {
+    setGameState((prev) => ({
+      ...prev,
+      playerTeam: prev.playerTeam.filter(
+        (unit: PlayerUnit) => unit.id !== unitId
+      ),
+      money: prev.money + MONEY.SELL_VALUE,
+    }));
+  };
+
+  const readyForBattle = () => {
+    const round = gameState.playerWins + gameState.opponentWins + 1;
+    const opponentTeam = generateOpponentTeam(round);
+    setCurrentOpponentTeam(opponentTeam);
+
+    setGameState((prev) => ({
+      ...prev,
+      phase: "battle",
+    }));
+  };
+
+  const completeBattle = (winner: "player" | "opponent") => {
+    const newPlayerWins =
+      winner === "player" ? gameState.playerWins + 1 : gameState.playerWins;
+    const newOpponentWins =
+      winner === "opponent"
+        ? gameState.opponentWins + 1
+        : gameState.opponentWins;
+
+    const gameWinner =
+      newPlayerWins >= 4 ? "player" : newOpponentWins >= 4 ? "opponent" : null;
+
+    setGameState((prev) => ({
+      ...prev,
+      phase: "result",
+      playerWins: newPlayerWins,
+      opponentWins: newOpponentWins,
+      lastBattleWinner: winner,
+      gameWinner,
+    }));
+  };
+
+  const continueToShop = () => {
+    const shopUnits = generateShopUnits();
+    setGameState((prev) => ({
+      ...prev,
+      phase: "shop",
+      currentShopUnits: shopUnits,
+      money: prev.money + MONEY.DAILY_INCOME, // Daily income
+    }));
+  };
+
+  const startNewGame = () => {
+    const shopUnits = generateShopUnits();
+    setGameState({
+      phase: "shop",
+      playerTeam: [],
+      playerWins: 0,
+      opponentWins: 0,
+      currentShopUnits: shopUnits,
+      lastBattleWinner: null,
+      gameWinner: null,
+      money: MONEY.STARTING_MONEY,
+    });
+  };
+
+  const restartGame = () => {
+    setIsMenuOpen(false);
+    startNewGame();
+  };
+
+  const backToHome = () => {
+    setIsMenuOpen(false);
+    setGameState({
+      phase: "start",
+      playerTeam: [],
+      playerWins: 0,
+      opponentWins: 0,
+      currentShopUnits: [],
+      lastBattleWinner: null,
+      gameWinner: null,
+      money: MONEY.STARTING_MONEY,
+    });
+  };
+
+  // Render current game phase
+  const renderCurrentPhase = () => {
+    switch (gameState.phase) {
+      case "start":
+        return <StartScreen onStartGame={startGame} />;
+
+      case "shop":
+        return (
+          <ShopScreen
+            shopUnits={gameState.currentShopUnits}
+            playerTeam={gameState.playerTeam}
+            playerWins={gameState.playerWins}
+            opponentWins={gameState.opponentWins}
+            money={gameState.money}
+            onSelectUnit={selectUnit}
+            onSellUnit={sellUnit}
+            onReady={readyForBattle}
+          />
+        );
+
+      case "battle":
+        return (
+          <BattleScreen
+            playerTeam={gameState.playerTeam}
+            opponentTeam={currentOpponentTeam}
+            playerWins={gameState.playerWins}
+            opponentWins={gameState.opponentWins}
+            onBattleComplete={completeBattle}
+          />
+        );
+
+      case "result":
+        return (
+          <ResultScreen
+            lastBattleWinner={gameState.lastBattleWinner!}
+            playerWins={gameState.playerWins}
+            opponentWins={gameState.opponentWins}
+            gameWinner={gameState.gameWinner}
+            onContinue={continueToShop}
+            onNewGame={startNewGame}
+          />
+        );
+
+      default:
+        return <StartScreen onStartGame={startGame} />;
     }
-    const handle = setTimeout(() => {
-      const e = events[idx];
-      const nextVis = applyLogEvent(vis, e, unitsById);
-      setVis(nextVis);
-      setIdx(idx + 1);
-      if (e.t === "end") setWinner((e as any).winner);
-    }, Math.max(40, 220 / speed));
-    return () => clearTimeout(handle);
-  }, [playing, idx, events, vis, speed]);
-
-  function resetPlayback() {
-    setVis(emptyVisualState());
-    setIdx(0);
-    setPlaying(false);
-  }
+  };
 
   return (
-    <div className="layout">
-      <div
-        className="panel"
-        style={{ display: "flex", flexDirection: "column", gap: 12 }}
-      >
-        <h3>Controls</h3>
-        <div className="row">
-          <label style={{ width: 80 }}>Team A</label>
-          <select
-            value={selA}
-            onChange={(e) => setSelA(parseInt(e.target.value))}
-          >
-            {teamPresets.map((t, i) => (
-              <option key={t.name} value={i}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="row">
-          <label style={{ width: 80 }}>Team B</label>
-          <select
-            value={selB}
-            onChange={(e) => setSelB(parseInt(e.target.value))}
-          >
-            {teamPresets.map((t, i) => (
-              <option key={t.name} value={i}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="row">
-          <label style={{ width: 80 }}>Seed</label>
-          <input
-            value={seed}
-            onChange={(e) => setSeed(e.target.value)}
-            placeholder="seed"
-          />
-        </div>
-        <div className="row">
-          <button className="primary" onClick={run}>
-            fight
-          </button>
-          <button
-            className="secondary"
-            onClick={() => setPlaying((p) => !p)}
-            disabled={!events}
-          >
-            {playing ? "pause" : "play"}
-          </button>
-          <button className="secondary" onClick={resetPlayback}>
-            reset
-          </button>
-        </div>
-        <div className="row">
-          <label>Speed</label>
-          <input
-            type="range"
-            min={0.5}
-            max={4}
-            step={0.5}
-            value={speed}
-            onChange={(e) => setSpeed(parseFloat(e.target.value))}
-          />
-          <span>{speed}x</span>
-        </div>
-        <div className="row">
-          <span>Status:</span>
-          {winner ? (
-            <span className="winner">winner: {winner}</span>
-          ) : (
-            <span>{playing ? "playing..." : events ? "paused" : "idle"}</span>
-          )}
-        </div>
-        <h3>Logs</h3>
-        <div className="log">
-          {events?.slice(Math.max(0, idx - 30), idx).map((e, i) => (
-            <div key={i}>{JSON.stringify(e)}</div>
-          ))}
-        </div>
-      </div>
-
-      <div className="panel">
-        <Stage width={WIDTH} height={HEIGHT} options={{ backgroundAlpha: 0 }}>
-          <Board vis={vis} />
-        </Stage>
-      </div>
+    <div className="game-app">
+      {renderCurrentPhase()}
 
       <Menu
         isOpen={isMenuOpen}
@@ -207,6 +240,8 @@ export default function App() {
         setIsMusicMuted={setIsMusicMuted}
         musicVolume={musicVolume}
         setMusicVolume={setMusicVolume}
+        onRestart={gameState.phase !== "start" ? restartGame : undefined}
+        onBackToHome={gameState.phase !== "start" ? backToHome : undefined}
       />
     </div>
   );

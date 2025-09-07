@@ -10,6 +10,8 @@ interface MenuProps {
   setIsMusicMuted: (muted: boolean) => void;
   musicVolume: number;
   setMusicVolume: (volume: number) => void;
+  onRestart?: () => void;
+  onBackToHome?: () => void;
 }
 
 export default function Menu({
@@ -21,6 +23,8 @@ export default function Menu({
   setIsMusicMuted,
   musicVolume,
   setMusicVolume,
+  onRestart,
+  onBackToHome,
 }: MenuProps) {
   // Handle ESC key to close menu
   useEffect(() => {
@@ -120,6 +124,25 @@ export default function Menu({
           <div
             style={{ display: "flex", flexDirection: "column", gap: "16px" }}
           >
+            {/* Game Controls */}
+            {(onRestart || onBackToHome) && (
+              <>
+                <h3 style={{ margin: 0, color: "var(--text)" }}>🎮 Game</h3>
+                <div className="game-controls">
+                  {onRestart && (
+                    <button className="secondary" onClick={onRestart}>
+                      🔄 Restart Game
+                    </button>
+                  )}
+                  {onBackToHome && (
+                    <button className="secondary" onClick={onBackToHome}>
+                      🏠 Back to Home
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+
             <h3 style={{ margin: 0, color: "var(--text)" }}>🎵 Audio</h3>
 
             {/* Music Controls */}
