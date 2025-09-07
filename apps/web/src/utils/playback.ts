@@ -191,6 +191,7 @@ export function applyLogEvent(
       });
 
       // Apply self-targeting onStart buffs immediately when unit spawns
+      // Note: Shield effects are handled by status events, not here
       if (def.ability && def.ability.trigger === "onStart") {
         const spawnedUnit = next.units.get(e.unit)!;
 
@@ -203,11 +204,9 @@ export function applyLogEvent(
               spawnedUnit.hp += effect.hp;
               spawnedUnit.baseHp += effect.hp;
             }
-          } else if (effect.kind === "shield" && effect.target === "self") {
-            spawnedUnit.shield = (spawnedUnit.shield || 0) + effect.amount;
-            if (!spawnedUnit.statuses) spawnedUnit.statuses = {};
-            spawnedUnit.statuses["shield"] = spawnedUnit.shield;
           }
+          // Shield effects are handled by status events from the battle engine
+          // Don't apply them here to avoid duplication
         }
       }
 
