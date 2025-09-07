@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Stage } from "@pixi/react";
 import Board from "./components/Board";
+import Menu from "./components/Menu";
 import {
   teamPresets,
   unitsById,
@@ -9,6 +10,7 @@ import {
 } from "@nico/autobattler-battle-core";
 import type { BattleLogEvent } from "@nico/autobattler-battle-core";
 import { applyLogEvent, VisualState, emptyVisualState } from "./utils/playback";
+import { audioManager, enableAudioOnUserInteraction } from "./utils/audio";
 
 const WIDTH = 8 * 96 + 32; // 8 columns * tile size + padding
 const HEIGHT = 5 * 96 + 32 + 20; // 5 rows (2 + 1 gap + 2) * tile size + padding + space for team labels
@@ -23,6 +25,44 @@ export default function App() {
   const [speed, setSpeed] = useState(1);
   const [playing, setPlaying] = useState(false);
   const [winner, setWinner] = useState<string | null>(null);
+  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+  const [isMusicMuted, setIsMusicMuted] = useState(false);
+  const [musicVolume, setMusicVolume] = useState(0.5);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // Initialize audio on component mount
+  useEffect(() => {
+    // Enable audio on user interaction to comply with browser autoplay policies
+    enableAudioOnUserInteraction();
+
+    // Try to start music immediately (will only work if user has already interacted)
+    audioManager.tryPlay().then(() => {
+      setIsMusicPlaying(audioManager.getIsPlaying());
+    });
+
+    // Set initial volume
+    audioManager.setVolume(musicVolume);
+    setIsMusicMuted(audioManager.getIsMuted());
+
+    return () => {
+      // Cleanup: pause music when component unmounts
+      audioManager.pause();
+    };
+  }, []);
+
+  // ESC key handler for menu
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsMenuOpen((prev) => !prev);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   function run() {
     setWinner(null);
@@ -74,9 +114,9 @@ export default function App() {
         className="panel"
         style={{ display: "flex", flexDirection: "column", gap: 12 }}
       >
-        <h3>controls</h3>
+        <h3>Controls</h3>
         <div className="row">
-          <label style={{ width: 80 }}>team A</label>
+          <label style={{ width: 80 }}>Team A</label>
           <select
             value={selA}
             onChange={(e) => setSelA(parseInt(e.target.value))}
@@ -89,7 +129,7 @@ export default function App() {
           </select>
         </div>
         <div className="row">
-          <label style={{ width: 80 }}>team B</label>
+          <label style={{ width: 80 }}>Team B</label>
           <select
             value={selB}
             onChange={(e) => setSelB(parseInt(e.target.value))}
@@ -102,7 +142,7 @@ export default function App() {
           </select>
         </div>
         <div className="row">
-          <label style={{ width: 80 }}>seed</label>
+          <label style={{ width: 80 }}>Seed</label>
           <input
             value={seed}
             onChange={(e) => setSeed(e.target.value)}
@@ -125,7 +165,7 @@ export default function App() {
           </button>
         </div>
         <div className="row">
-          <label>speed</label>
+          <label>Speed</label>
           <input
             type="range"
             min={0.5}
@@ -137,14 +177,14 @@ export default function App() {
           <span>{speed}x</span>
         </div>
         <div className="row">
-          <span>status:</span>
+          <span>Status:</span>
           {winner ? (
             <span className="winner">winner: {winner}</span>
           ) : (
             <span>{playing ? "playing..." : events ? "paused" : "idle"}</span>
           )}
         </div>
-        <h3>log tail</h3>
+        <h3>Logs</h3>
         <div className="log">
           {events?.slice(Math.max(0, idx - 30), idx).map((e, i) => (
             <div key={i}>{JSON.stringify(e)}</div>
@@ -157,6 +197,17 @@ export default function App() {
           <Board vis={vis} />
         </Stage>
       </div>
+
+      <Menu
+        isOpen={isMenuOpen}
+        onClose={() => setIsMenuOpen(false)}
+        isMusicPlaying={isMusicPlaying}
+        setIsMusicPlaying={setIsMusicPlaying}
+        isMusicMuted={isMusicMuted}
+        setIsMusicMuted={setIsMusicMuted}
+        musicVolume={musicVolume}
+        setMusicVolume={setMusicVolume}
+      />
     </div>
   );
 }

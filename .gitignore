@@ -4,3 +4,8 @@ dist
 .DS_Store
 release
 web-dist
+
+# Allow audio files
+!**/*.mp3
+!**/*.wav
+!**/*.ogg

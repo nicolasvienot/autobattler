@@ -4,14 +4,15 @@
   "packageManager": "pnpm@9.0.0",
   "scripts": {
     "dev": "pnpm --filter ./apps/web dev",
-    "dev:all": "turbo run dev --parallel",
-    "dev:desktop": "pnpm --filter ./apps/desktop dev",
+    "dev:desktop": "concurrently \"pnpm dev\" \"wait-on http://localhost:5173 && NODE_ENV=development pnpm --filter ./apps/desktop electron:dev\" --names \"web,electron\" --prefix-colors \"blue,green\"",
     "build": "turbo run build",
     "build:desktop": "pnpm --filter ./apps/web build:electron && pnpm --filter ./apps/desktop build",
     "pack:desktop": "pnpm run build:desktop && pnpm --filter ./apps/desktop electron:pack",
     "test": "turbo run test"
   },
   "devDependencies": {
-    "turbo": "^2.5.6"
+    "turbo": "^2.5.6",
+    "concurrently": "^8.0.0",
+    "wait-on": "^7.0.0"
   }
 }
