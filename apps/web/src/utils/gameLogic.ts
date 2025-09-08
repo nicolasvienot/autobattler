@@ -7,9 +7,19 @@ import {
 import type { UnitDef, UnitInstance } from "@nico/autobattler-battle-core";
 import type { PlayerUnit, BattleResult } from "../types/game";
 
-// Generate 3 random units for the shop
-export function generateShopUnits(): UnitDef[] {
-  const availableUnits = units.filter((unit) => unit.tier <= 5); // Allow all tiers 1-5
+// Generate 3 random units for the shop based on current round
+export function generateShopUnits(round: number = 1): UnitDef[] {
+  // Tier restrictions based on round
+  let maxTier: number;
+  if (round === 1) {
+    maxTier = 1; // Round 1: Only tier 1
+  } else if (round === 2) {
+    maxTier = 2; // Round 2: Tiers 1-2
+  } else {
+    maxTier = 5; // Round 3+: All tiers 1-5
+  }
+
+  const availableUnits = units.filter((unit) => unit.tier <= maxTier);
   const shuffled = [...availableUnits].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, 3);
 }

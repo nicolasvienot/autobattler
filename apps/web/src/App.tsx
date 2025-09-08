@@ -61,7 +61,8 @@ export default function App() {
 
   // Game state handlers
   const startGame = () => {
-    const shopUnits = generateShopUnits();
+    const round = 1; // Starting round
+    const shopUnits = generateShopUnits(round);
     setGameState({
       phase: "shop",
       playerTeam: [],
@@ -149,7 +150,8 @@ export default function App() {
     // Don't allow reroll if not enough money
     if (gameState.money < rerollCost) return;
 
-    const newShopUnits = generateShopUnits();
+    const currentRound = gameState.playerWins + gameState.opponentWins + 1;
+    const newShopUnits = generateShopUnits(currentRound);
     setGameState((prev) => ({
       ...prev,
       currentShopUnits: newShopUnits,
@@ -197,18 +199,22 @@ export default function App() {
   };
 
   const continueToShop = () => {
-    const shopUnits = generateShopUnits();
-    setGameState((prev) => ({
-      ...prev,
-      phase: "shop",
-      currentShopUnits: shopUnits,
-      money: prev.money + MONEY.DAILY_INCOME, // Daily income
-      rerollCount: 0, // Reset reroll count each round
-    }));
+    setGameState((prev) => {
+      const nextRound = prev.playerWins + prev.opponentWins + 1;
+      const shopUnits = generateShopUnits(nextRound);
+      return {
+        ...prev,
+        phase: "shop",
+        currentShopUnits: shopUnits,
+        money: prev.money + MONEY.DAILY_INCOME, // Daily income
+        rerollCount: 0, // Reset reroll count each round
+      };
+    });
   };
 
   const startNewGame = () => {
-    const shopUnits = generateShopUnits();
+    const round = 1; // Starting round
+    const shopUnits = generateShopUnits(round);
     setGameState({
       phase: "shop",
       playerTeam: [],
