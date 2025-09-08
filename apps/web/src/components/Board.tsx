@@ -185,12 +185,39 @@ function UnitSprite({ u }: { u: VisualUnit }) {
       ) : null}
 
       {/* Status effects indicator */}
-      {u.statuses && Object.keys(u.statuses).length > 0 ? (
+      {u.statuses &&
+      Object.keys(u.statuses).filter((status) => status !== "shield").length >
+        0 ? (
         <Graphics
           draw={(g: any) => {
             g.clear();
-            // Small colored dot for status effects
-            g.beginFill(0xff6b6b, 0.8);
+
+            // Get the first non-shield status effect to determine color
+            const statusKeys = Object.keys(u.statuses).filter(
+              (status) => status !== "shield"
+            );
+            const firstStatus = statusKeys[0];
+
+            // Color mapping for different status effects
+            let statusColor = 0xfbbf24; // Default yellow for unknown effects
+
+            switch (firstStatus) {
+              case "poison":
+                statusColor = 0x9333ea; // Purple
+                break;
+              case "chain":
+                statusColor = 0x06b6d4; // Blue/cyan
+                break;
+              case "lifesteal":
+              case "lifestealPct":
+                statusColor = 0xdc2626; // Red
+                break;
+              default:
+                statusColor = 0xfbbf24; // Yellow for other effects
+            }
+
+            // Draw status dot with appropriate color
+            g.beginFill(statusColor, 0.8);
             g.drawCircle(w - 8, 8, 4);
             g.endFill();
           }}

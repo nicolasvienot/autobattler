@@ -74,14 +74,8 @@ function applyMultiTargetOnStartEffects(
                 target.baseHp += effect.hp;
               }
             }
-          } else if (effect.kind === "shield" && effect.target !== "self") {
-            const targets = getTargetUnits(effect.target, unit, state.units);
-
-            for (const target of targets) {
-              target.shield = (target.shield || 0) + effect.amount;
-              if (!target.statuses) target.statuses = {};
-              target.statuses["shield"] = target.shield;
-            }
+            // Shield effects are handled via status events in the battle log
+            // Removing manual processing to prevent double application
           }
         }
       }
