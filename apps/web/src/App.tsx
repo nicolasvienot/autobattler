@@ -76,8 +76,13 @@ export default function App() {
   };
 
   const selectUnit = (unit: UnitDef) => {
+    const unitCost =
+      MONEY.UNIT_COST_BY_TIER[
+        unit.tier as keyof typeof MONEY.UNIT_COST_BY_TIER
+      ];
+
     // Don't allow purchase if not enough money
-    if (gameState.money < MONEY.UNIT_COST) return;
+    if (gameState.money < unitCost) return;
 
     const newPlayerUnit: PlayerUnit = {
       id: `player_${gameState.playerTeam.length}_${Date.now()}`,
@@ -89,7 +94,7 @@ export default function App() {
     setGameState((prev) => ({
       ...prev,
       playerTeam: [...prev.playerTeam, newPlayerUnit],
-      money: prev.money - MONEY.UNIT_COST,
+      money: prev.money - unitCost,
       // Remove the purchased unit from the shop
       currentShopUnits: prev.currentShopUnits.filter(
         (shopUnit: UnitDef) => shopUnit.id !== unit.id
@@ -98,13 +103,24 @@ export default function App() {
   };
 
   const sellUnit = (unitId: string) => {
-    setGameState((prev) => ({
-      ...prev,
-      playerTeam: prev.playerTeam.filter(
-        (unit: PlayerUnit) => unit.id !== unitId
-      ),
-      money: prev.money + MONEY.SELL_VALUE,
-    }));
+    setGameState((prev) => {
+      const unitToSell = prev.playerTeam.find(
+        (unit: PlayerUnit) => unit.id === unitId
+      );
+      const sellValue = unitToSell
+        ? MONEY.SELL_VALUE_BY_TIER[
+            unitToSell.def.tier as keyof typeof MONEY.SELL_VALUE_BY_TIER
+          ]
+        : MONEY.SELL_VALUE;
+
+      return {
+        ...prev,
+        playerTeam: prev.playerTeam.filter(
+          (unit: PlayerUnit) => unit.id !== unitId
+        ),
+        money: prev.money + sellValue,
+      };
+    });
   };
 
   const reorderTeam = (fromIndex: number, toIndex: number) => {

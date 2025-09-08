@@ -92,7 +92,7 @@ export default function ShopScreen({
       <div className="shop-content">
         <div className="shop-section">
           <div className="shop-header-controls">
-            <h3>Choose a unit ({MONEY.UNIT_COST}💰 each)</h3>
+            <h3>Choose a unit (prices vary by tier)</h3>
             <div className="reroll-controls">
               <button
                 className={`reroll-button ${
@@ -118,7 +118,11 @@ export default function ShopScreen({
               </div>
             ) : (
               shopUnits.map((unit) => {
-                const canAfford = money >= MONEY.UNIT_COST;
+                const unitCost =
+                  MONEY.UNIT_COST_BY_TIER[
+                    unit.tier as keyof typeof MONEY.UNIT_COST_BY_TIER
+                  ];
+                const canAfford = money >= unitCost;
 
                 return (
                   <div
@@ -132,6 +136,7 @@ export default function ShopScreen({
                         <div className="unit-tier-badge" data-tier={unit.tier}>
                           {getTierDescription(unit.tier)}
                         </div>
+                        <div className="unit-price">{unitCost}💰</div>
                       </div>
 
                       <div className="unit-stats">
@@ -246,9 +251,21 @@ export default function ShopScreen({
                             <button
                               className="sell-button"
                               onClick={() => onSellUnit(unit.id)}
-                              title={`Sell for ${MONEY.SELL_VALUE} gold`}
+                              title={`Sell for ${
+                                MONEY.SELL_VALUE_BY_TIER[
+                                  unit.def
+                                    .tier as keyof typeof MONEY.SELL_VALUE_BY_TIER
+                                ]
+                              } gold`}
                             >
-                              💰 Sell ({MONEY.SELL_VALUE})
+                              💰 Sell (
+                              {
+                                MONEY.SELL_VALUE_BY_TIER[
+                                  unit.def
+                                    .tier as keyof typeof MONEY.SELL_VALUE_BY_TIER
+                                ]
+                              }
+                              )
                             </button>
                           </div>
                           <div className="unit-stats small-stats">

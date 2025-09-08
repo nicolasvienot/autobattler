@@ -6,6 +6,21 @@ export type GamePhase = "start" | "shop" | "battle" | "result";
 export const MONEY_CONSTANTS = {
   STARTING_MONEY: 3,
   DAILY_INCOME: 4,
+  UNIT_COST_BY_TIER: {
+    1: 2,
+    2: 3,
+    3: 4,
+    4: 5,
+    5: 6,
+  },
+  SELL_VALUE_BY_TIER: {
+    1: 1,
+    2: 2,
+    3: 2,
+    4: 3,
+    5: 3,
+  },
+  // Legacy constants for backwards compatibility
   UNIT_COST: 3,
   SELL_VALUE: 2,
 } as const;

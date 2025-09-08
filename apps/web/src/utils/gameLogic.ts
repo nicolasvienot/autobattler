@@ -9,7 +9,7 @@ import type { PlayerUnit, BattleResult } from "../types/game";
 
 // Generate 3 random units for the shop
 export function generateShopUnits(): UnitDef[] {
-  const availableUnits = units.filter((unit) => unit.tier <= 3); // Only tiers 1-3 for simplicity
+  const availableUnits = units.filter((unit) => unit.tier <= 5); // Allow all tiers 1-5
   const shuffled = [...availableUnits].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, 3);
 }
