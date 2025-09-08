@@ -47,7 +47,7 @@ export default function ResultScreen({
   return (
     <div className="screen result-screen">
       <div className="result-content">
-        <h2>Round {round} Complete</h2>
+        <h2>Round {round} complete</h2>
 
         <div className="battle-result">
           <div

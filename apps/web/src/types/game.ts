@@ -5,7 +5,7 @@ export type GamePhase = "start" | "shop" | "battle" | "result";
 // Money system constants
 export const MONEY_CONSTANTS = {
   STARTING_MONEY: 3,
-  DAILY_INCOME: 3,
+  DAILY_INCOME: 4,
   UNIT_COST: 3,
   SELL_VALUE: 2,
 } as const;
@@ -26,6 +26,7 @@ export type GameState = {
   lastBattleWinner: "player" | "opponent" | null;
   gameWinner: "player" | "opponent" | null;
   money: number;
+  rerollCount: number; // Track rerolls for escalating cost
 };
 
 export type BattleResult = {

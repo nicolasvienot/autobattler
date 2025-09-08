@@ -20,6 +20,7 @@ export default function App() {
     lastBattleWinner: null,
     gameWinner: null,
     money: MONEY.STARTING_MONEY,
+    rerollCount: 0,
   });
 
   const [currentOpponentTeam, setCurrentOpponentTeam] = useState<PlayerUnit[]>(
@@ -70,6 +71,7 @@ export default function App() {
       lastBattleWinner: null,
       gameWinner: null,
       money: MONEY.STARTING_MONEY,
+      rerollCount: 0,
     });
   };
 
@@ -125,6 +127,21 @@ export default function App() {
     }));
   };
 
+  const rerollShop = () => {
+    const rerollCost = gameState.rerollCount + 1;
+
+    // Don't allow reroll if not enough money
+    if (gameState.money < rerollCost) return;
+
+    const newShopUnits = generateShopUnits();
+    setGameState((prev) => ({
+      ...prev,
+      currentShopUnits: newShopUnits,
+      money: prev.money - rerollCost,
+      rerollCount: prev.rerollCount + 1,
+    }));
+  };
+
   const readyForBattle = () => {
     console.log("🔍 Ready for battle clicked!");
     console.log(
@@ -170,6 +187,7 @@ export default function App() {
       phase: "shop",
       currentShopUnits: shopUnits,
       money: prev.money + MONEY.DAILY_INCOME, // Daily income
+      rerollCount: 0, // Reset reroll count each round
     }));
   };
 
@@ -184,6 +202,7 @@ export default function App() {
       lastBattleWinner: null,
       gameWinner: null,
       money: MONEY.STARTING_MONEY,
+      rerollCount: 0,
     });
   };
 
@@ -203,6 +222,7 @@ export default function App() {
       lastBattleWinner: null,
       gameWinner: null,
       money: MONEY.STARTING_MONEY,
+      rerollCount: 0,
     });
   };
 
@@ -220,10 +240,12 @@ export default function App() {
             playerWins={gameState.playerWins}
             opponentWins={gameState.opponentWins}
             money={gameState.money}
+            rerollCount={gameState.rerollCount}
             onSelectUnit={selectUnit}
             onSellUnit={sellUnit}
             onReorderTeam={reorderTeam}
             onToggleUnitRow={toggleUnitRow}
+            onRerollShop={rerollShop}
             onReady={readyForBattle}
           />
         );

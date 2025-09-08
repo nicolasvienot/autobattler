@@ -295,6 +295,56 @@ input[type="range"]:disabled::-moz-range-thumb {
   color: var(--accent);
 }
 
+.shop-header-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.shop-header-controls h3 {
+  margin: 0;
+}
+
+.reroll-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.reroll-button {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.reroll-button:hover:not(:disabled) {
+  background: #5a9fee;
+  transform: translateY(-1px);
+}
+
+.reroll-button:disabled {
+  background: #4a4a4a;
+  color: #888;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.reroll-info {
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
+}
+
 .shop-units {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -421,11 +471,13 @@ input[type="range"]:disabled::-moz-range-thumb {
 }
 
 .unit-ability {
-  margin-top: 0.75rem;
-  padding: 0.5rem;
+  margin: 0.75rem 0 0 0;
+  padding: 0.5rem 1rem;
+  padding-left: 0.75rem;
   background: rgba(255, 255, 255, 0.03);
   border-radius: 6px;
   border-left: 3px solid var(--accent);
+  text-align: left;
 }
 
 .ability-title {
@@ -476,23 +528,22 @@ input[type="range"]:disabled::-moz-range-thumb {
 }
 
 .team-unit {
-  position: relative;
-  cursor: grab;
-  transition: all 0.2s ease;
+  display: flex;
+  background: var(--panel);
+  border: 2px solid #252a33;
   border-radius: 8px;
-  border: 2px solid transparent;
+  transition: all 0.2s ease;
+  overflow: hidden;
 }
 
 .team-unit:hover {
   border-color: rgba(74, 144, 226, 0.3);
-  transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .team-unit.dragging {
   opacity: 0.5;
-  transform: rotate(5deg);
-  cursor: grabbing;
+  transform: rotate(2deg);
 }
 
 .team-unit.drag-over {
@@ -502,18 +553,20 @@ input[type="range"]:disabled::-moz-range-thumb {
 }
 
 .team-unit .drag-handle {
-  position: absolute;
-  left: 8px;
-  top: 50%;
-  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  background: rgba(0, 0, 0, 0.1);
   color: #666;
   font-size: 16px;
   cursor: grab;
   user-select: none;
-  z-index: 2;
+  border-right: 1px solid #252a33;
 }
 
 .team-unit .drag-handle:hover {
+  background: rgba(74, 144, 226, 0.1);
   color: #4a90e2;
 }
 
@@ -521,58 +574,66 @@ input[type="range"]:disabled::-moz-range-thumb {
   cursor: grabbing;
 }
 
-.team-unit .unit-controls {
-  position: absolute;
-  right: 8px;
-  top: 8px;
+.team-unit .unit-content {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  z-index: 2;
+  padding: 0.75rem;
+}
+
+.team-unit .unit-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #252a33;
+}
+
+.team-unit .position-info {
+  display: flex;
+  align-items: center;
 }
 
 .team-unit .position-indicator {
   background: rgba(74, 144, 226, 0.8);
   color: white;
-  padding: 2px 6px;
+  padding: 4px 8px;
   border-radius: 4px;
   font-size: 0.7rem;
   font-weight: 600;
-  text-align: center;
-}
-
-.team-unit .row-selector {
-  display: flex;
-  justify-content: center;
+  white-space: nowrap;
 }
 
 .team-unit .row-button {
-  background: rgba(0, 0, 0, 0.6);
-  border: 1px solid #444;
-  color: #ccc;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.7rem;
+  background: #2a2f3a;
+  color: #9aa0a6;
+  border: 1px solid #3a404a;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.75rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  min-width: 60px;
+  font-weight: 600;
 }
 
 .team-unit .row-button:hover {
-  background: rgba(74, 144, 226, 0.3);
-  border-color: #4a90e2;
-  color: white;
+  background: #3a404a;
+  color: #e6e6e6;
+  border-color: #4a505a;
+  transform: translateY(-1px);
 }
 
 .team-unit .row-button.active {
   background: rgba(74, 144, 226, 0.8);
-  border-color: #4a90e2;
   color: white;
-  font-weight: 600;
+  border-color: #4a90e2;
+  font-weight: 700;
 }
 
 .team-unit .row-button.active:hover {
-  background: rgba(74, 144, 226, 1);
+  background: #4a90e2;
+  transform: translateY(-1px);
 }
 
 .team-hint {
@@ -585,7 +646,6 @@ input[type="range"]:disabled::-moz-range-thumb {
 .team-unit .unit-card {
   padding: 0.75rem;
   margin: 0;
-  margin-left: 24px; /* Make room for drag handle */
 }
 
 .unit-card.small h5 {
@@ -828,6 +888,12 @@ input[type="range"]:disabled::-moz-range-thumb {
   font-size: 0.7rem;
   color: var(--text);
   margin-top: 0.5rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.event-details pre {
+  margin: 0;
   white-space: pre-wrap;
   word-break: break-all;
 }

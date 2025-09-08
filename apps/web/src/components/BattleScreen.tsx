@@ -313,8 +313,7 @@ export default function BattleScreen({
             )}
             {events && idx < events.length && (
               <div className="event-details">
-                {JSON.stringify(events[idx], null, 2).slice(0, 100)}
-                {JSON.stringify(events[idx], null, 2).length > 100 && "..."}
+                <pre>{JSON.stringify(events[idx], null, 2)}</pre>
               </div>
             )}
           </div>
@@ -437,7 +436,7 @@ export default function BattleScreen({
                   }
                 }}
               >
-                Continue to Results
+                Continue to results
               </button>
             </div>
           ) : playing ? (
