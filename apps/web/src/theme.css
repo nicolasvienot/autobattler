@@ -475,9 +475,117 @@ input[type="range"]:disabled::-moz-range-thumb {
   overflow-y: auto;
 }
 
+.team-unit {
+  position: relative;
+  cursor: grab;
+  transition: all 0.2s ease;
+  border-radius: 8px;
+  border: 2px solid transparent;
+}
+
+.team-unit:hover {
+  border-color: rgba(74, 144, 226, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.team-unit.dragging {
+  opacity: 0.5;
+  transform: rotate(5deg);
+  cursor: grabbing;
+}
+
+.team-unit.drag-over {
+  border-color: #4a90e2;
+  background: rgba(74, 144, 226, 0.1);
+  transform: scale(1.02);
+}
+
+.team-unit .drag-handle {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+  font-size: 16px;
+  cursor: grab;
+  user-select: none;
+  z-index: 2;
+}
+
+.team-unit .drag-handle:hover {
+  color: #4a90e2;
+}
+
+.team-unit.dragging .drag-handle {
+  cursor: grabbing;
+}
+
+.team-unit .unit-controls {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 2;
+}
+
+.team-unit .position-indicator {
+  background: rgba(74, 144, 226, 0.8);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.team-unit .row-selector {
+  display: flex;
+  justify-content: center;
+}
+
+.team-unit .row-button {
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid #444;
+  color: #ccc;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 60px;
+}
+
+.team-unit .row-button:hover {
+  background: rgba(74, 144, 226, 0.3);
+  border-color: #4a90e2;
+  color: white;
+}
+
+.team-unit .row-button.active {
+  background: rgba(74, 144, 226, 0.8);
+  border-color: #4a90e2;
+  color: white;
+  font-weight: 600;
+}
+
+.team-unit .row-button.active:hover {
+  background: rgba(74, 144, 226, 1);
+}
+
+.team-hint {
+  color: #888;
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+  text-align: center;
+}
+
 .team-unit .unit-card {
   padding: 0.75rem;
   margin: 0;
+  margin-left: 24px; /* Make room for drag handle */
 }
 
 .unit-card.small h5 {

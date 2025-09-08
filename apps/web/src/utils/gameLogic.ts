@@ -29,6 +29,7 @@ export function generateOpponentTeam(round: number): PlayerUnit[] {
       id: `opponent_${i}`,
       def: randomUnit,
       level: 1,
+      preferredRow: i < 4 ? 0 : 1, // Simple front/back distribution for opponents
     });
   }
 
@@ -36,22 +37,71 @@ export function generateOpponentTeam(round: number): PlayerUnit[] {
 }
 
 // Convert PlayerUnit to UnitInstance for battle simulation
-function playerUnitToInstance(
+export function playerUnitToInstance(
   unit: PlayerUnit,
   team: "A" | "B",
-  index: number
+  position: { row: 0 | 1; col: number }
 ): UnitInstance {
-  const row = index < 4 ? 0 : 1;
-  const col = index < 4 ? index : index - 4;
-
   return {
     uid: unit.id,
     team,
     defId: unit.def.id,
     level: unit.level,
-    pos: { row: row as 0 | 1, col },
+    pos: position,
     itemIds: [],
   };
+}
+
+// Calculate battle positions respecting row preferences
+export function calculateBattlePositions(
+  playerTeam: PlayerUnit[]
+): Array<{ row: 0 | 1; col: number }> {
+  const frontRowUnits: number[] = [];
+  const backRowUnits: number[] = [];
+
+  // Group units by preferred row
+  playerTeam.forEach((unit, index) => {
+    if (unit.preferredRow === 0) {
+      frontRowUnits.push(index);
+    } else {
+      backRowUnits.push(index);
+    }
+  });
+
+  const positions: Array<{ row: 0 | 1; col: number }> = new Array(
+    playerTeam.length
+  );
+  const MAX_COLS = 8; // Maximum columns per row
+
+  // Assign front row positions
+  let frontCol = 0;
+  for (const unitIndex of frontRowUnits) {
+    if (frontCol < MAX_COLS) {
+      positions[unitIndex] = { row: 0, col: frontCol };
+      frontCol++;
+    } else {
+      // Front row is full, put in back row
+      positions[unitIndex] = { row: 1, col: backRowUnits.length };
+      backRowUnits.push(unitIndex);
+    }
+  }
+
+  // Assign back row positions
+  let backCol = 0;
+  for (const unitIndex of backRowUnits) {
+    if (positions[unitIndex]) continue; // Already positioned (overflow from front)
+
+    if (backCol < MAX_COLS) {
+      positions[unitIndex] = { row: 1, col: backCol };
+      backCol++;
+    } else {
+      // Both rows full, put in front row at end
+      positions[unitIndex] = { row: 0, col: frontCol };
+      frontCol++;
+    }
+  }
+
+  return positions;
 }
 
 // Run a battle between player and opponent teams
@@ -60,12 +110,29 @@ export function runBattle(
   opponentTeam: PlayerUnit[],
   seed: string
 ): BattleResult {
-  // Convert teams to battle format
-  const playerInstances = playerTeam.map((unit, index) =>
-    playerUnitToInstance(unit, "A", index)
+  console.log("🔍 runBattle called with:", playerTeam.length, "player units");
+  // Calculate positions respecting row preferences
+  const playerPositions = calculateBattlePositions(playerTeam);
+  console.log(
+    "🔍 Player positions from calculateBattlePositions:",
+    playerPositions
   );
+
+  const playerInstances = playerTeam.map((unit, index) =>
+    playerUnitToInstance(unit, "A", playerPositions[index])
+  );
+
+  console.log(
+    "🔍 Player instances:",
+    playerInstances.map(
+      (inst) => `${inst.defId}: row=${inst.pos.row}, col=${inst.pos.col}`
+    )
+  );
+
+  // Opponent team also uses row preferences
+  const opponentPositions = calculateBattlePositions(opponentTeam);
   const opponentInstances = opponentTeam.map((unit, index) =>
-    playerUnitToInstance(unit, "B", index)
+    playerUnitToInstance(unit, "B", opponentPositions[index])
   );
 
   // Run the battle

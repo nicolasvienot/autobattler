@@ -81,6 +81,7 @@ export default function App() {
       id: `player_${gameState.playerTeam.length}_${Date.now()}`,
       def: unit,
       level: 1,
+      preferredRow: 0, // Default to front row
     };
 
     setGameState((prev) => ({
@@ -104,7 +105,33 @@ export default function App() {
     }));
   };
 
+  const reorderTeam = (fromIndex: number, toIndex: number) => {
+    setGameState((prev) => {
+      const newTeam = [...prev.playerTeam];
+      const [movedUnit] = newTeam.splice(fromIndex, 1);
+      newTeam.splice(toIndex, 0, movedUnit);
+      return { ...prev, playerTeam: newTeam };
+    });
+  };
+
+  const toggleUnitRow = (unitId: string) => {
+    setGameState((prev) => ({
+      ...prev,
+      playerTeam: prev.playerTeam.map((unit) =>
+        unit.id === unitId
+          ? { ...unit, preferredRow: unit.preferredRow === 0 ? 1 : 0 }
+          : unit
+      ),
+    }));
+  };
+
   const readyForBattle = () => {
+    console.log("🔍 Ready for battle clicked!");
+    console.log(
+      "🔍 Player team:",
+      gameState.playerTeam.map((u) => `${u.def.name}: row=${u.preferredRow}`)
+    );
+
     const round = gameState.playerWins + gameState.opponentWins + 1;
     const opponentTeam = generateOpponentTeam(round);
     setCurrentOpponentTeam(opponentTeam);
@@ -195,6 +222,8 @@ export default function App() {
             money={gameState.money}
             onSelectUnit={selectUnit}
             onSellUnit={sellUnit}
+            onReorderTeam={reorderTeam}
+            onToggleUnitRow={toggleUnitRow}
             onReady={readyForBattle}
           />
         );

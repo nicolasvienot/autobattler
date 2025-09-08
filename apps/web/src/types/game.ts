@@ -14,6 +14,7 @@ export type PlayerUnit = {
   id: string;
   def: UnitDef;
   level: 1 | 2 | 3;
+  preferredRow: 0 | 1; // 0 = front row, 1 = back row
 };
 
 export type GameState = {

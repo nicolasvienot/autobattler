@@ -82,13 +82,23 @@ function drawGrid(g: any) {
 
 function UnitSprite({ u }: { u: VisualUnit }) {
   // Position units: Team A on top, Team B below with gap
+  // Front rows face each other in the middle
   const col = u.pos.col;
+
+  let displayRow = u.pos.row;
+  // For Team A: flip rows so front (row 0) appears at bottom (closest to gap), back (row 1) at top
+  if (u.team === "A") {
+    displayRow = 1 - u.pos.row; // 0 becomes 1, 1 becomes 0
+  }
+  // For Team B: keep normal order so front (row 0) is at top (closest to gap), back (row 1) at bottom
+  // This way front rows face each other across the gap
+
   const rowOffset =
     u.team === "B"
       ? (TEAM_ROWS + GAP_ROWS) * TILE // Team B starts after gap
       : 0; // Team A starts at top
   const x = PAD + col * TILE + 4;
-  const y = PAD + TOP_OFFSET + rowOffset + u.pos.row * TILE + 4;
+  const y = PAD + TOP_OFFSET + rowOffset + displayRow * TILE + 4;
   const w = TILE - 8;
   const h = TILE - 8;
   const color = u.team === "A" ? 0x4da3ff : 0xff7aa2;

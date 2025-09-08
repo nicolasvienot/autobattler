@@ -12,6 +12,7 @@ import {
   VisualState,
   emptyVisualState,
 } from "../utils/playback";
+import { calculateBattlePositions } from "../utils/gameLogic";
 import type { PlayerUnit } from "../types/game";
 
 const WIDTH = 8 * 96 + 32;
@@ -117,21 +118,18 @@ export default function BattleScreen({
     }
   }, [isDragging, isEffectsDragging, dragOffset, effectsDragOffset]);
 
-  // Convert PlayerUnit to battle format
+  // Convert PlayerUnit to battle format using preferred row
   const playerUnitToInstance = (
     unit: PlayerUnit,
     team: "A" | "B",
-    index: number
+    position: { row: 0 | 1; col: number }
   ) => {
-    const row = index < 4 ? 0 : 1;
-    const col = index < 4 ? index : index - 4;
-
     return {
       uid: unit.id,
       team,
       defId: unit.def.id,
       level: unit.level,
-      pos: { row: row as 0 | 1, col },
+      pos: position,
       itemIds: [],
     };
   };
@@ -142,11 +140,15 @@ export default function BattleScreen({
 
     setBattleStarted(true);
 
+    // Calculate positions respecting row preferences
+    const playerPositions = calculateBattlePositions(playerTeam);
     const playerInstances = playerTeam.map((unit, index) =>
-      playerUnitToInstance(unit, "A", index)
+      playerUnitToInstance(unit, "A", playerPositions[index])
     );
+
+    const opponentPositions = calculateBattlePositions(opponentTeam);
     const opponentInstances = opponentTeam.map((unit, index) =>
-      playerUnitToInstance(unit, "B", index)
+      playerUnitToInstance(unit, "B", opponentPositions[index])
     );
 
     const seed = `battle_${Date.now()}`;
@@ -165,11 +167,15 @@ export default function BattleScreen({
 
     setBattleStarted(true);
 
+    // Calculate positions respecting row preferences
+    const playerPositions = calculateBattlePositions(playerTeam);
     const playerInstances = playerTeam.map((unit, index) =>
-      playerUnitToInstance(unit, "A", index)
+      playerUnitToInstance(unit, "A", playerPositions[index])
     );
+
+    const opponentPositions = calculateBattlePositions(opponentTeam);
     const opponentInstances = opponentTeam.map((unit, index) =>
-      playerUnitToInstance(unit, "B", index)
+      playerUnitToInstance(unit, "B", opponentPositions[index])
     );
 
     const seed = `battle_${Date.now()}`;

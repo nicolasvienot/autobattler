@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { UnitDef } from "@nico/autobattler-battle-core";
 import type { PlayerUnit } from "../types/game";
 import { MONEY_CONSTANTS as MONEY } from "../types/game";
@@ -15,6 +16,8 @@ interface ShopScreenProps {
   money: number;
   onSelectUnit: (unit: UnitDef) => void;
   onSellUnit: (unitId: string) => void;
+  onReorderTeam: (fromIndex: number, toIndex: number) => void;
+  onToggleUnitRow: (unitId: string) => void;
   onReady: () => void;
 }
 
@@ -26,9 +29,44 @@ export default function ShopScreen({
   money,
   onSelectUnit,
   onSellUnit,
+  onReorderTeam,
+  onToggleUnitRow,
   onReady,
 }: ShopScreenProps) {
   const round = playerWins + opponentWins + 1;
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/html", e.currentTarget.outerHTML);
+    e.dataTransfer.setDragImage(e.currentTarget as Element, 0, 0);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverIndex(index);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex !== null && draggedIndex !== dropIndex) {
+      onReorderTeam(draggedIndex, dropIndex);
+    }
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
 
   return (
     <div className="screen shop-screen">
@@ -130,6 +168,10 @@ export default function ShopScreen({
 
         <div className="team-section">
           <h3>Your Team ({playerTeam.length}/7)</h3>
+          <p className="team-hint">
+            Drag units to reorder them! Click row buttons to choose front/back
+            row. Position affects targeting abilities.
+          </p>
           <div className="player-team">
             {playerTeam.length === 0 ? (
               <div className="empty-team">
@@ -137,55 +179,102 @@ export default function ShopScreen({
               </div>
             ) : (
               <div className="team-units">
-                {playerTeam.map((unit, index) => (
-                  <div key={unit.id} className="team-unit">
-                    <div className="unit-card small">
-                      <div className="unit-header">
-                        <div className="unit-name-tier">
-                          <h5>{unit.def.name}</h5>
-                          <span
-                            className="small-tier-badge"
-                            data-tier={unit.def.tier}
+                {playerTeam.map((unit, index) => {
+                  const isDragging = draggedIndex === index;
+                  const isDragOver = dragOverIndex === index;
+                  const rowName =
+                    unit.preferredRow === 0 ? "Front Row" : "Back Row";
+
+                  // Calculate actual battle position
+                  // This is a simplified preview - actual battle position may differ due to overflow handling
+                  const unitsInSameRowBefore = playerTeam.filter(
+                    (u, i) => i < index && u.preferredRow === unit.preferredRow
+                  ).length;
+                  const position = `${rowName}, Position ${
+                    unitsInSameRowBefore + 1
+                  }`;
+
+                  return (
+                    <div
+                      key={unit.id}
+                      className={`team-unit ${isDragging ? "dragging" : ""} ${
+                        isDragOver ? "drag-over" : ""
+                      }`}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, index)}
+                      onDragEnd={handleDragEnd}
+                      title={`${position} - Drag to reorder`}
+                    >
+                      <div className="drag-handle">⋮⋮</div>
+                      <div className="unit-controls">
+                        <div className="position-indicator">{position}</div>
+                        <div className="row-selector">
+                          <button
+                            className={`row-button ${
+                              unit.preferredRow === 0 ? "active" : ""
+                            }`}
+                            onClick={() => onToggleUnitRow(unit.id)}
+                            title="Toggle between front and back row"
                           >
-                            {getTierDescription(unit.def.tier)}
-                          </span>
-                        </div>
-                        <button
-                          className="sell-button"
-                          onClick={() => onSellUnit(unit.id)}
-                          title={`Sell for ${MONEY.SELL_VALUE} gold`}
-                        >
-                          💰 Sell ({MONEY.SELL_VALUE})
-                        </button>
-                      </div>
-                      <div className="unit-stats small-stats">
-                        <div className="stat">
-                          <span className="stat-icon">❤️</span>
-                          <span className="stat-value">{unit.def.base.hp}</span>
-                        </div>
-                        <div className="stat">
-                          <span className="stat-icon">⚔️</span>
-                          <span className="stat-value">
-                            {unit.def.base.atk}
-                          </span>
+                            {unit.preferredRow === 0 ? "🛡️ Front" : "🏹 Back"}
+                          </button>
                         </div>
                       </div>
-                      {unit.def.tribe && unit.def.tribe.length > 0 && (
-                        <div className="unit-tribes small-tribes">
-                          {unit.def.tribe.map((tribe) => (
+                      <div className="unit-card small">
+                        <div className="unit-header">
+                          <div className="unit-name-tier">
+                            <h5>{unit.def.name}</h5>
                             <span
-                              key={tribe}
-                              className="tribe small"
-                              style={{ backgroundColor: getTribeColor(tribe) }}
+                              className="small-tier-badge"
+                              data-tier={unit.def.tier}
                             >
-                              {tribe}
+                              {getTierDescription(unit.def.tier)}
                             </span>
-                          ))}
+                          </div>
+                          <button
+                            className="sell-button"
+                            onClick={() => onSellUnit(unit.id)}
+                            title={`Sell for ${MONEY.SELL_VALUE} gold`}
+                          >
+                            💰 Sell ({MONEY.SELL_VALUE})
+                          </button>
                         </div>
-                      )}
+                        <div className="unit-stats small-stats">
+                          <div className="stat">
+                            <span className="stat-icon">❤️</span>
+                            <span className="stat-value">
+                              {unit.def.base.hp}
+                            </span>
+                          </div>
+                          <div className="stat">
+                            <span className="stat-icon">⚔️</span>
+                            <span className="stat-value">
+                              {unit.def.base.atk}
+                            </span>
+                          </div>
+                        </div>
+                        {unit.def.tribe && unit.def.tribe.length > 0 && (
+                          <div className="unit-tribes small-tribes">
+                            {unit.def.tribe.map((tribe) => (
+                              <span
+                                key={tribe}
+                                className="tribe small"
+                                style={{
+                                  backgroundColor: getTribeColor(tribe),
+                                }}
+                              >
+                                {tribe}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

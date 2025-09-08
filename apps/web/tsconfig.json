@@ -7,21 +7,13 @@
     "strict": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "types": [
-      "vite/client"
-    ],
+    "types": ["vite/client", "react", "react-dom"],
     "baseUrl": ".",
     "paths": {
-      "@nico/battle-core/*": [
-        "../../packages/battle-core/src/*"
-      ],
-      "@nico/battle-core": [
-        "../../packages/battle-core/src/index.ts"
-      ]
+      "@nico/battle-core/*": ["../../packages/battle-core/src/*"],
+      "@nico/battle-core": ["../../packages/battle-core/src/index.ts"]
     },
     "composite": true
   },
-  "include": [
-    "src"
-  ]
+  "include": ["src"]
 }
