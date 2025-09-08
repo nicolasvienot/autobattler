@@ -1018,6 +1018,7 @@ input[type="range"]:disabled::-moz-range-thumb {
 .shield-indicator {
   background: #ffd700;
   border: 2px solid #ffd700;
+  box-sizing: border-box;
 }
 
 .poison-dot {

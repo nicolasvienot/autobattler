@@ -40,18 +40,28 @@ export default function BattleScreen({
   const [battleStarted, setBattleStarted] = useState(false);
   const [speed, setSpeed] = useState(1);
 
-  // Draggable controls state - positioned middle-right
+  // Calculate positions with equal margins from board
+  const boardWidth = 8 * 96 + 32; // WIDTH constant
+  const panelWidth = 250;
+  const screenCenter = window.innerWidth / 2;
+  const boardLeft = screenCenter - boardWidth / 2;
+  const boardRight = screenCenter + boardWidth / 2;
+
+  // Equal margin from board edges
+  const marginFromBoard = 50;
+
+  // Draggable controls state - positioned right side with equal margin from board
   const [controlsPosition, setControlsPosition] = useState({
-    x: window.innerWidth - 320,
+    x: boardRight + marginFromBoard,
     y: 200,
   });
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
-  // Draggable effects guide state - positioned below controls
+  // Draggable effects guide state - positioned left side with equal margin from board
   const [effectsPosition, setEffectsPosition] = useState({
-    x: window.innerWidth - 320,
-    y: 500,
+    x: boardLeft - marginFromBoard - panelWidth,
+    y: 200,
   });
   const [isEffectsDragging, setIsEffectsDragging] = useState(false);
   const [effectsDragOffset, setEffectsDragOffset] = useState({ x: 0, y: 0 });
@@ -334,7 +344,7 @@ export default function BattleScreen({
           <div className="battle-info">
             <div className="team-info">
               <div className="player-team-info">
-                <h3>Your Team</h3>
+                <h3>Your team</h3>
                 <div className="team-preview">
                   {playerTeam.map((unit, index) => (
                     <span key={unit.id} className="unit-name">
@@ -344,7 +354,7 @@ export default function BattleScreen({
                 </div>
               </div>
               <div className="opponent-team-info">
-                <h3>Opponent Team</h3>
+                <h3>Opponent team</h3>
                 <div className="team-preview">
                   {opponentTeam.map((unit, index) => (
                     <span key={unit.id} className="unit-name">
@@ -382,7 +392,7 @@ export default function BattleScreen({
               ⋮⋮ Drag to move
             </div>
             <div style={{ padding: "1rem" }}>
-              <h4>Visual Effects Guide</h4>
+              <h4>Visual effects guide</h4>
               <div className="legend-items">
                 <div className="legend-item">
                   <div className="legend-indicator buff-indicator"></div>

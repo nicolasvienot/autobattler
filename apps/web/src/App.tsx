@@ -4,7 +4,11 @@ import ShopScreen from "./components/ShopScreen";
 import BattleScreen from "./components/BattleScreen";
 import ResultScreen from "./components/ResultScreen";
 import Menu from "./components/Menu";
-import { generateShopUnits, generateOpponentTeam } from "./utils/gameLogic";
+import {
+  generateShopUnits,
+  generateInitialOpponentTeam,
+  addOpponentUnit,
+} from "./utils/gameLogic";
 import { audioManager, enableAudioOnUserInteraction } from "./utils/audio";
 import type { GameState, PlayerUnit, MONEY_CONSTANTS } from "./types/game";
 import { MONEY_CONSTANTS as MONEY } from "./types/game";
@@ -14,6 +18,7 @@ export default function App() {
   const [gameState, setGameState] = useState<GameState>({
     phase: "start",
     playerTeam: [],
+    opponentTeam: [],
     playerWins: 0,
     opponentWins: 0,
     currentShopUnits: [],
@@ -22,10 +27,6 @@ export default function App() {
     money: MONEY.STARTING_MONEY,
     rerollCount: 0,
   });
-
-  const [currentOpponentTeam, setCurrentOpponentTeam] = useState<PlayerUnit[]>(
-    []
-  );
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const [isMusicMuted, setIsMusicMuted] = useState(false);
   const [musicVolume, setMusicVolume] = useState(0.5);
@@ -63,9 +64,11 @@ export default function App() {
   const startGame = () => {
     const round = 1; // Starting round
     const shopUnits = generateShopUnits(round);
+    const initialOpponentTeam = generateInitialOpponentTeam();
     setGameState({
       phase: "shop",
       playerTeam: [],
+      opponentTeam: initialOpponentTeam,
       playerWins: 0,
       opponentWins: 0,
       currentShopUnits: shopUnits,
@@ -167,10 +170,6 @@ export default function App() {
       gameState.playerTeam.map((u) => `${u.def.name}: row=${u.preferredRow}`)
     );
 
-    const round = gameState.playerWins + gameState.opponentWins + 1;
-    const opponentTeam = generateOpponentTeam(round);
-    setCurrentOpponentTeam(opponentTeam);
-
     setGameState((prev) => ({
       ...prev,
       phase: "battle",
@@ -202,10 +201,12 @@ export default function App() {
     setGameState((prev) => {
       const nextRound = prev.playerWins + prev.opponentWins + 1;
       const shopUnits = generateShopUnits(nextRound);
+      const updatedOpponentTeam = addOpponentUnit(prev.opponentTeam, nextRound);
       return {
         ...prev,
         phase: "shop",
         currentShopUnits: shopUnits,
+        opponentTeam: updatedOpponentTeam,
         money: prev.money + MONEY.DAILY_INCOME, // Daily income
         rerollCount: 0, // Reset reroll count each round
       };
@@ -215,9 +216,11 @@ export default function App() {
   const startNewGame = () => {
     const round = 1; // Starting round
     const shopUnits = generateShopUnits(round);
+    const initialOpponentTeam = generateInitialOpponentTeam();
     setGameState({
       phase: "shop",
       playerTeam: [],
+      opponentTeam: initialOpponentTeam,
       playerWins: 0,
       opponentWins: 0,
       currentShopUnits: shopUnits,
@@ -238,6 +241,7 @@ export default function App() {
     setGameState({
       phase: "start",
       playerTeam: [],
+      opponentTeam: [],
       playerWins: 0,
       opponentWins: 0,
       currentShopUnits: [],
@@ -276,7 +280,7 @@ export default function App() {
         return (
           <BattleScreen
             playerTeam={gameState.playerTeam}
-            opponentTeam={currentOpponentTeam}
+            opponentTeam={gameState.opponentTeam}
             playerWins={gameState.playerWins}
             opponentWins={gameState.opponentWins}
             onBattleComplete={completeBattle}

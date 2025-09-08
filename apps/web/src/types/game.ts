@@ -35,6 +35,7 @@ export type PlayerUnit = {
 export type GameState = {
   phase: GamePhase;
   playerTeam: PlayerUnit[];
+  opponentTeam: PlayerUnit[]; // Persistent opponent team
   playerWins: number;
   opponentWins: number;
   currentShopUnits: UnitDef[];

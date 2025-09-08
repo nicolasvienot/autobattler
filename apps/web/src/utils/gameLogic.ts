@@ -24,26 +24,56 @@ export function generateShopUnits(round: number = 1): UnitDef[] {
   return shuffled.slice(0, 3);
 }
 
-// Generate a random opponent team based on current round
-export function generateOpponentTeam(round: number): PlayerUnit[] {
-  const teamSize = Math.min(round, 7); // Max 7 units
-  const availableUnits = units.filter(
-    (unit) => unit.tier <= Math.min(3 + Math.floor(round / 3), 5)
-  );
-  const opponentTeam: PlayerUnit[] = [];
+// Generate initial opponent team for round 1
+export function generateInitialOpponentTeam(): PlayerUnit[] {
+  // Round 1: Only tier 1 units, start with 1 unit
+  const availableUnits = units.filter((unit) => unit.tier <= 1);
+  const randomUnit =
+    availableUnits[Math.floor(Math.random() * availableUnits.length)];
 
-  for (let i = 0; i < teamSize; i++) {
-    const randomUnit =
-      availableUnits[Math.floor(Math.random() * availableUnits.length)];
-    opponentTeam.push({
-      id: `opponent_${i}`,
+  return [
+    {
+      id: `opponent_0`,
       def: randomUnit,
       level: 1,
-      preferredRow: i < 4 ? 0 : 1, // Simple front/back distribution for opponents
-    });
+      preferredRow: 0, // Start in front row
+    },
+  ];
+}
+
+// Add a new unit to existing opponent team based on current round
+export function addOpponentUnit(
+  existingTeam: PlayerUnit[],
+  round: number
+): PlayerUnit[] {
+  // Don't add more units after round 7 (max team size)
+  if (existingTeam.length >= 7) {
+    return existingTeam;
   }
 
-  return opponentTeam;
+  // Determine max tier based on round (same logic as shop)
+  let maxTier: number;
+  if (round === 1) {
+    maxTier = 1; // Round 1: Only tier 1
+  } else if (round === 2) {
+    maxTier = 2; // Round 2: Tiers 1-2
+  } else {
+    maxTier = 5; // Round 3+: All tiers 1-5
+  }
+
+  const availableUnits = units.filter((unit) => unit.tier <= maxTier);
+  const randomUnit =
+    availableUnits[Math.floor(Math.random() * availableUnits.length)];
+
+  const newUnit: PlayerUnit = {
+    id: `opponent_${existingTeam.length}`,
+    def: randomUnit,
+    level: 1,
+    // Alternate between front and back rows
+    preferredRow: existingTeam.length < 4 ? 0 : 1,
+  };
+
+  return [...existingTeam, newUnit];
 }
 
 // Convert PlayerUnit to UnitInstance for battle simulation
