@@ -193,7 +193,7 @@ function UnitSprite({ u }: { u: VisualUnit }) {
             g.clear();
 
             // Get the first non-shield status effect to determine color
-            const statusKeys = Object.keys(u.statuses).filter(
+            const statusKeys = Object.keys(u.statuses || {}).filter(
               (status) => status !== "shield"
             );
             const firstStatus = statusKeys[0];

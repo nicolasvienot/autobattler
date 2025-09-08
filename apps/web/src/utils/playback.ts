@@ -47,7 +47,9 @@ function applyMultiTargetOnStartEffects(
       return (
         unitDef.ability &&
         unitDef.ability.trigger === "onStart" &&
-        unitDef.ability.effects.some((e) => e.target !== "self")
+        unitDef.ability.effects.some(
+          (e) => "target" in e && e.target !== "self"
+        )
       );
     })
     .sort((a, b) => {
@@ -64,7 +66,11 @@ function applyMultiTargetOnStartEffects(
 
       if (unitDef.ability && unitDef.ability.trigger === "onStart") {
         for (const effect of unitDef.ability.effects) {
-          if (effect.kind === "buff" && effect.target !== "self") {
+          if (
+            effect.kind === "buff" &&
+            "target" in effect &&
+            effect.target !== "self"
+          ) {
             const targets = getTargetUnits(effect.target, unit, state.units);
 
             for (const target of targets) {
@@ -190,7 +196,11 @@ export function applyLogEvent(
         const spawnedUnit = next.units.get(e.unit)!;
 
         for (const effect of def.ability.effects) {
-          if (effect.kind === "buff" && effect.target === "self") {
+          if (
+            effect.kind === "buff" &&
+            "target" in effect &&
+            effect.target === "self"
+          ) {
             if (effect.atk) {
               spawnedUnit.atk += effect.atk;
             }
